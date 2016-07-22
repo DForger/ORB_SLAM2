@@ -508,7 +508,7 @@ void Tracking::Track()
 
 void Tracking::StereoInitialization()
 {
-    if(mCurrentFrame.N>500)
+    if(mCurrentFrame.N>500) //only a frame with sufficient kpts can be allowed to initialize the vslam.
     {
         // Set Frame pose to the origin
         mCurrentFrame.SetPose(cv::Mat::eye(4,4,CV_32F));
@@ -542,7 +542,7 @@ void Tracking::StereoInitialization()
         mpLocalMapper->InsertKeyFrame(pKFini);
 
         mLastFrame = Frame(mCurrentFrame);
-        mnLastKeyFrameId=mCurrentFrame.mnId;
+        mnLastKeyFrameId=mCurrentFrame.mnId;    //keyframe id in frame index
         mpLastKeyFrame = pKFini;
 
         mvpLocalKeyFrames.push_back(pKFini);

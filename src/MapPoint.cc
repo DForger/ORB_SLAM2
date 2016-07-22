@@ -315,7 +315,7 @@ cv::Mat MapPoint::GetDescriptor()
 int MapPoint::GetIndexInKeyFrame(KeyFrame *pKF)
 {
     unique_lock<mutex> lock(mMutexFeatures);
-    if(mObservations.count(pKF))
+    if(mObservations.count(pKF))    //mObservation is a std::map from keyframe pointer to the mappoint index in the keyframe
         return mObservations[pKF];
     else
         return -1;

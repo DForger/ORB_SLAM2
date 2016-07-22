@@ -32,7 +32,7 @@
 
 namespace ORB_SLAM2
 {
-
+//Sim3 aimed to find the Sim3 transformation (R|st) with two groups of 3d points
 
 Sim3Solver::Sim3Solver(KeyFrame *pKF1, KeyFrame *pKF2, const vector<MapPoint *> &vpMatched12, const bool bFixScale):
     mnIterations(0), mnBestInliers(0), mbFixScale(bFixScale)
@@ -40,7 +40,7 @@ Sim3Solver::Sim3Solver(KeyFrame *pKF1, KeyFrame *pKF2, const vector<MapPoint *> 
     mpKF1 = pKF1;
     mpKF2 = pKF2;
 
-    vector<MapPoint*> vpKeyFrameMP1 = pKF1->GetMapPointMatches();
+    vector<MapPoint*> vpKeyFrameMP1 = pKF1->GetMapPointMatches();   //mapping local feature descritpor to old map point or null
 
     mN1 = vpMatched12.size();
 
@@ -63,16 +63,19 @@ Sim3Solver::Sim3Solver(KeyFrame *pKF1, KeyFrame *pKF2, const vector<MapPoint *> 
     {
         if(vpMatched12[i1])
         {
-            MapPoint* pMP1 = vpKeyFrameMP1[i1];
-            MapPoint* pMP2 = vpMatched12[i1];
+            //the two map point should be the same point
 
+            MapPoint* pMP1 = vpKeyFrameMP1[i1]; // feature descriptor to old map point
+            MapPoint* pMP2 = vpMatched12[i1];   // feature descriptor to newly created map point (should be the same point as the old map point)
+
+            //valid check
             if(!pMP1)
                 continue;
 
             if(pMP1->isBad() || pMP2->isBad())
                 continue;
 
-            int indexKF1 = pMP1->GetIndexInKeyFrame(pKF1);
+            int indexKF1 = pMP1->GetIndexInKeyFrame(pKF1);  //the index of the map point in the keyframe
             int indexKF2 = pMP2->GetIndexInKeyFrame(pKF2);
 
             if(indexKF1<0 || indexKF2<0)
@@ -162,7 +165,7 @@ cv::Mat Sim3Solver::iterate(int nIterations, bool &bNoMore, vector<bool> &vbInli
 
         vAvailableIndices = mvAllIndices;
 
-        // Get min set of points
+        // Get min set of points， 3pt
         for(short i = 0; i < 3; ++i)
         {
             int randi = DUtils::Random::RandomInt(0, vAvailableIndices.size()-1);
@@ -340,8 +343,8 @@ void Sim3Solver::ComputeSim3(cv::Mat &P1, cv::Mat &P2)
 void Sim3Solver::CheckInliers()
 {
     vector<cv::Mat> vP1im2, vP2im1;
-    Project(mvX3Dc2,vP2im1,mT12i,mK1);
-    Project(mvX3Dc1,vP1im2,mT21i,mK2);
+    Project(mvX3Dc2,vP2im1,mT12i,mK1);  //project 3d points in frame2 to 2d image in frame1
+    Project(mvX3Dc1,vP1im2,mT21i,mK2);  //project 3d points in frame1 to 2d image in frame2
 
     mnInliersi=0;
 
@@ -381,6 +384,7 @@ float Sim3Solver::GetEstimatedScale()
 
 void Sim3Solver::Project(const vector<cv::Mat> &vP3Dw, vector<cv::Mat> &vP2D, cv::Mat Tcw, cv::Mat K)
 {
+    //project 3d points to a 2d image with relative pose Tcw and camera K
     cv::Mat Rcw = Tcw.rowRange(0,3).colRange(0,3);
     cv::Mat tcw = Tcw.rowRange(0,3).col(3);
     const float &fx = K.at<float>(0,0);
@@ -404,6 +408,7 @@ void Sim3Solver::Project(const vector<cv::Mat> &vP3Dw, vector<cv::Mat> &vP2D, cv
 
 void Sim3Solver::FromCameraToImage(const vector<cv::Mat> &vP3Dc, vector<cv::Mat> &vP2D, cv::Mat K)
 {
+    //project 3d point to 2d image
     const float &fx = K.at<float>(0,0);
     const float &fy = K.at<float>(1,1);
     const float &cx = K.at<float>(0,2);

@@ -42,6 +42,7 @@ public:
 
     cv::Mat find(std::vector<bool> &vbInliers12, int &nInliers);
 
+    //return (sR|t) transformation
     cv::Mat iterate(int nIterations, bool &bNoMore, std::vector<bool> &vbInliers, int &nInliers);
 
     cv::Mat GetEstimatedRotation();
@@ -58,6 +59,7 @@ protected:
     void CheckInliers();
 
     void Project(const std::vector<cv::Mat> &vP3Dw, std::vector<cv::Mat> &vP2D, cv::Mat Tcw, cv::Mat K);
+
     void FromCameraToImage(const std::vector<cv::Mat> &vP3Dc, std::vector<cv::Mat> &vP2D, cv::Mat K);
 
 

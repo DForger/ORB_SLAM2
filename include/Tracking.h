@@ -204,7 +204,7 @@ protected:
     //Last Frame, KeyFrame and Relocalisation Info
     KeyFrame* mpLastKeyFrame;
     Frame mLastFrame;
-    unsigned int mnLastKeyFrameId;
+    unsigned int mnLastKeyFrameId;  //not the real keyframe id, but the index of keyframe in frame sets.
     unsigned int mnLastRelocFrameId;
 
     //Motion Model

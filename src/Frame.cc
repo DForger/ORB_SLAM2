@@ -113,6 +113,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
 
     mb = mbf/fx;
 
+    //assigning feature to grid for motion based ma
     AssignFeaturesToGrid();
 }
 
