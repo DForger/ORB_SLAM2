@@ -35,6 +35,7 @@ namespace ORB_SLAM2
 class MapPoint;
 class KeyFrame;
 
+//Map is designed for managing keyframes and mappoints
 class Map
 {
 public:

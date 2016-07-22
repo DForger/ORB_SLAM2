@@ -38,7 +38,7 @@ namespace ORB_SLAM2
 class KeyFrame;
 class Frame;
 
-
+//KeyFrameDB is used for BoW loop detection
 class KeyFrameDatabase
 {
 public:

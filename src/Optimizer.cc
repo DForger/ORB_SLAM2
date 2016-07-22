@@ -783,6 +783,7 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
                                        const LoopClosing::KeyFrameAndPose &CorrectedSim3,
                                        const map<KeyFrame *, set<KeyFrame *> > &LoopConnections, const bool &bFixScale)
 {
+    //the loop keyframe is fixed
     // Setup optimizer
     g2o::SparseOptimizer optimizer;
     optimizer.setVerbose(false);
@@ -880,6 +881,7 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
     }
 
     // Set normal edges
+    // the link between keyframes. only the most weighted is retrained.
     for(size_t i=0, iend=vpKFs.size(); i<iend; i++)
     {
         KeyFrame* pKF = vpKFs[i];

@@ -541,7 +541,7 @@ void LoopClosing::CorrectLoop()
 
 
     // After the MapPoint fusion, new links in the covisibility graph will appear attaching both sides of the loop
-    map<KeyFrame*, set<KeyFrame*> > LoopConnections;
+    map<KeyFrame*, set<KeyFrame*> > LoopConnections;    //it only store the new connection appeared after loop closure
 
     for(vector<KeyFrame*>::iterator vit=mvpCurrentConnectedKFs.begin(), vend=mvpCurrentConnectedKFs.end(); vit!=vend; vit++)
     {
@@ -565,6 +565,7 @@ void LoopClosing::CorrectLoop()
     Optimizer::OptimizeEssentialGraph(mpMap, mpMatchedKF, mpCurrentKF, NonCorrectedSim3, CorrectedSim3, LoopConnections, mbFixScale);
 
     // Add loop edge
+    //loop edge is added to loop frame and current frame
     mpMatchedKF->AddLoopEdge(mpCurrentKF);
     mpCurrentKF->AddLoopEdge(mpMatchedKF);
 
