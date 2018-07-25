@@ -33,13 +33,21 @@ class ExtractorNode
 {
 public:
     ExtractorNode():bNoMore(false){}
-
+    
+    /**
+     * @brief : distribute kpts to 4 child nodes.
+     * 
+     * @param n1 
+     * @param n2 
+     * @param n3 
+     * @param n4 
+     */
     void DivideNode(ExtractorNode &n1, ExtractorNode &n2, ExtractorNode &n3, ExtractorNode &n4);
 
     std::vector<cv::KeyPoint> vKeys;
-    cv::Point2i UL, UR, BL, BR;
+    cv::Point2i UL, UR, BL, BR;  // the pos of 4 rectangle corners
     std::list<ExtractorNode>::iterator lit;
-    bool bNoMore;
+    bool bNoMore;  // a flag to indicate it only has one kpt
 };
 
 class ORBextractor

@@ -480,6 +480,7 @@ static void computeOrientation(const Mat& image, vector<KeyPoint>& keypoints, co
 
 void ExtractorNode::DivideNode(ExtractorNode &n1, ExtractorNode &n2, ExtractorNode &n3, ExtractorNode &n4)
 {
+    // cell divide line is the middle line
     const int halfX = ceil(static_cast<float>(UR.x-UL.x)/2);
     const int halfY = ceil(static_cast<float>(BR.y-UL.y)/2);
 
@@ -539,11 +540,19 @@ void ExtractorNode::DivideNode(ExtractorNode &n1, ExtractorNode &n2, ExtractorNo
 vector<cv::KeyPoint> ORBextractor::DistributeOctTree(const vector<cv::KeyPoint>& vToDistributeKeys, const int &minX,
                                        const int &maxX, const int &minY, const int &maxY, const int &N, const int &level)
 {
-    // Compute how many initial nodes   
+    // Compute how many initial nodes
+    // nIni can be zero if Y_height is much bigger than X_width?
+    // ideally each initial occupy [maxY-minY]x[maxY-minY] pixels, 
+    // initial node's number depends on the ratio between width and height
+    // the rightmost region will be assigned to UR, and BR
+    // exp:
+    // if x_width = 1.5 * y_height, initial node num = 2;
+    // if x_width = 1.3 * y_height, inital node num = 1
     const int nIni = round(static_cast<float>(maxX-minX)/(maxY-minY));
 
     const float hX = static_cast<float>(maxX-minX)/nIni;
 
+    // store the leaf node
     list<ExtractorNode> lNodes;
 
     vector<ExtractorNode*> vpIniNodes;
@@ -552,9 +561,9 @@ vector<cv::KeyPoint> ORBextractor::DistributeOctTree(const vector<cv::KeyPoint>&
     for(int i=0; i<nIni; i++)
     {
         ExtractorNode ni;
-        ni.UL = cv::Point2i(hX*static_cast<float>(i),0);
-        ni.UR = cv::Point2i(hX*static_cast<float>(i+1),0);
-        ni.BL = cv::Point2i(ni.UL.x,maxY-minY);
+        ni.UL = cv::Point2i(hX*static_cast<float>(i),0); // roi upper left corner
+        ni.UR = cv::Point2i(hX*static_cast<float>(i+1),0); // roi upper right corner
+        ni.BL = cv::Point2i(ni.UL.x,maxY-minY);     
         ni.BR = cv::Point2i(ni.UR.x,maxY-minY);
         ni.vKeys.reserve(vToDistributeKeys.size());
 
@@ -571,6 +580,7 @@ vector<cv::KeyPoint> ORBextractor::DistributeOctTree(const vector<cv::KeyPoint>&
 
     list<ExtractorNode>::iterator lit = lNodes.begin();
 
+    // init root
     while(lit!=lNodes.end())
     {
         if(lit->vKeys.size()==1)
@@ -588,6 +598,7 @@ vector<cv::KeyPoint> ORBextractor::DistributeOctTree(const vector<cv::KeyPoint>&
 
     int iteration = 0;
 
+    // store the node pointer that need expansion
     vector<pair<int,ExtractorNode*> > vSizeAndPointerToNode;
     vSizeAndPointerToNode.reserve(lNodes.size()*4);
 
@@ -603,6 +614,9 @@ vector<cv::KeyPoint> ORBextractor::DistributeOctTree(const vector<cv::KeyPoint>&
 
         vSizeAndPointerToNode.clear();
 
+        // iterate all nodes and check the node that needs expansion
+        // expanded node put to the front of lNodes and continues iterate old list
+        // after iteration, lNodes should only contain the leaf node
         while(lit!=lNodes.end())
         {
             if(lit->bNoMore)
@@ -658,7 +672,7 @@ vector<cv::KeyPoint> ORBextractor::DistributeOctTree(const vector<cv::KeyPoint>&
                         lNodes.front().lit = lNodes.begin();
                     }
                 }
-
+                // remove the node that has been divided
                 lit=lNodes.erase(lit);
                 continue;
             }
@@ -666,13 +680,14 @@ vector<cv::KeyPoint> ORBextractor::DistributeOctTree(const vector<cv::KeyPoint>&
 
         // Finish if there are more nodes than required features
         // or all nodes contain just one point
+        // lNodes.size() == prevSize indicate no node need expansion
         if((int)lNodes.size()>=N || (int)lNodes.size()==prevSize)
         {
             bFinish = true;
         }
-        else if(((int)lNodes.size()+nToExpand*3)>N)
+        else if(((int)lNodes.size()+nToExpand*3)>N) // if < N, continue expand
         {
-
+            // expand until leaf num > N of leaf num don't change
             while(!bFinish)
             {
 
@@ -681,6 +696,7 @@ vector<cv::KeyPoint> ORBextractor::DistributeOctTree(const vector<cv::KeyPoint>&
                 vector<pair<int,ExtractorNode*> > vPrevSizeAndPointerToNode = vSizeAndPointerToNode;
                 vSizeAndPointerToNode.clear();
 
+                // sort by kpt number
                 sort(vPrevSizeAndPointerToNode.begin(),vPrevSizeAndPointerToNode.end());
                 for(int j=vPrevSizeAndPointerToNode.size()-1;j>=0;j--)
                 {
@@ -743,6 +759,7 @@ vector<cv::KeyPoint> ORBextractor::DistributeOctTree(const vector<cv::KeyPoint>&
     vResultKeys.reserve(nfeatures);
     for(list<ExtractorNode>::iterator lit=lNodes.begin(); lit!=lNodes.end(); lit++)
     {
+        // for each node, find the max response kpt and push_back to result
         vector<cv::KeyPoint> &vNodeKeys = lit->vKeys;
         cv::KeyPoint* pKP = &vNodeKeys[0];
         float maxResponse = pKP->response;
@@ -770,26 +787,29 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
 
     for (int level = 0; level < nlevels; ++level)
     {
+        // left some border space for descriptor extraction
         const int minBorderX = EDGE_THRESHOLD-3;
         const int minBorderY = minBorderX;
         const int maxBorderX = mvImagePyramid[level].cols-EDGE_THRESHOLD+3;
         const int maxBorderY = mvImagePyramid[level].rows-EDGE_THRESHOLD+3;
 
-        vector<cv::KeyPoint> vToDistributeKeys;
+        vector<cv::KeyPoint> vToDistributeKeys; // store all kpt in the same level
         vToDistributeKeys.reserve(nfeatures*10);
 
+        // valid width and height
         const float width = (maxBorderX-minBorderX);
         const float height = (maxBorderY-minBorderY);
 
+        // w is the desired cell size
         const int nCols = width/W;
         const int nRows = height/W;
-        const int wCell = ceil(width/nCols);
-        const int hCell = ceil(height/nRows);
+        const int wCell = ceil(width/nCols);  // each cell's actual width
+        const int hCell = ceil(height/nRows); // each cell's actual height
 
         for(int i=0; i<nRows; i++)
         {
-            const float iniY =minBorderY+i*hCell;
-            float maxY = iniY+hCell+6;
+            const float iniY =minBorderY+i*hCell; // cell start y
+            float maxY = iniY+hCell+6; // why +6 
 
             if(iniY>=maxBorderY-3)
                 continue;
@@ -798,8 +818,8 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
 
             for(int j=0; j<nCols; j++)
             {
-                const float iniX =minBorderX+j*wCell;
-                float maxX = iniX+wCell+6;
+                const float iniX =minBorderX+j*wCell; // cell start x
+                float maxX = iniX+wCell+6;  // cell end x
                 if(iniX>=maxBorderX-6)
                     continue;
                 if(maxX>maxBorderX)
@@ -819,7 +839,7 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
                 {
                     for(vector<cv::KeyPoint>::iterator vit=vKeysCell.begin(); vit!=vKeysCell.end();vit++)
                     {
-                        (*vit).pt.x+=j*wCell;
+                        (*vit).pt.x+=j*wCell; // compensate pos offset
                         (*vit).pt.y+=i*hCell;
                         vToDistributeKeys.push_back(*vit);
                     }
@@ -831,6 +851,7 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
         vector<KeyPoint> & keypoints = allKeypoints[level];
         keypoints.reserve(nfeatures);
 
+        // using octree to remove nonmax keypoints
         keypoints = DistributeOctTree(vToDistributeKeys, minBorderX, maxBorderX,
                                       minBorderY, maxBorderY,mnFeaturesPerLevel[level], level);
 
